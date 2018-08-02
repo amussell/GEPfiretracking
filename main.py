@@ -4,7 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import csv
-
+import County
+import Fire
+import Land
+from CountyFireLandHelpers import outputDataToCSV
 
 from io import StringIO
 from xml.dom.minidom import parseString
@@ -276,29 +279,33 @@ def getAcresOfFire(fire):
 def getYearOfFire(fire):
     return getAttributeOfFire(fire,"FIRE_YEAR")
 
-fname = 'C:\\Users\\AlexMussell\\Desktop\\FirePerimetersHistory- Copy.kml'
+fireFile = 'C:\\Users\\AlexMussell\\Desktop\\FirePerimetersHistory- Copy.kml'
 i = 0
 fires = []
-for p in readPoly(fname):
-    fires.append(deepcopy(p))
+for p in readPoly(fireFile):
+    fire = Fire.Fire(p)
+    fires.append(deepcopy(fire))
     #printpolygon(p)
 
 
-fname = 'C:\\Users\\AlexMussell\\Desktop\\counties.kml'
+countyFile = 'C:\\Users\\AlexMussell\\Desktop\\counties.kml'
 i = 0
 counties = []
-for p in readPoly(fname):
-    counties.append(deepcopy(p))
+for p in readPoly(countyFile):
+    county = County.County(p)
+    counties.append(deepcopy(county))
     #printpolygon(p)
 
-with open('mycsvfile.csv','w', newline='') as f:
-    w = csv.writer(f)
-    for county in counties:
-        print(county[1]['name'])
-        w.writerow([county[1]['name']])
-        for fire in fires:
-            if(checkIfFireInCounty(fire,county)):
-                print('\t' + fire[1]['name'] + " " + getYearOfFire(fire))
-                w.writerow([' ',fire[1]['name'],getYearOfFire(fire),getAcresOfFire(fire)])
+landFile = ''
+lands = []
+for p in readPoly(landFile):
+    land = Land.Land(p)
+    lands.append(deepcopy(land))
 
-print("Hello")
+for county in counties:
+    county.findFiresInCounty(fires)
+
+for fire in fires:
+    fire.findLandsInFire(lands)
+
+outputDataToCSV(counties, fires, lands)
