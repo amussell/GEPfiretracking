@@ -301,3 +301,4 @@ with open('mycsvfile.csv','w', newline='') as f:
                 print('\t' + fire[1]['name'] + " " + getYearOfFire(fire))
                 w.writerow([' ',fire[1]['name'],getYearOfFire(fire),getAcresOfFire(fire)])
 
+print("Hello")
