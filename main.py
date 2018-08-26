@@ -8,6 +8,7 @@ import County
 import Fire
 import Land
 from CountyFireLandHelpers import outputDataToCSV
+from multiprocessing.dummy import Pool as ThreadPool
 
 from io import StringIO
 from xml.dom.minidom import parseString
@@ -273,39 +274,55 @@ def getAttributeOfFire(fire,attributeString):
         if row == attributeString:
             return tables[0][1][i]
 
+
 def getAcresOfFire(fire):
     return getAttributeOfFire(fire,"GIS_ACRES")
+
 
 def getYearOfFire(fire):
     return getAttributeOfFire(fire,"FIRE_YEAR")
 
-fireFile = 'C:\\Users\\AlexMussell\\Desktop\\FirePerimetersHistory- Copy.kml'
+
+fireFile = 'FireHistory.kml'
 i = 0
 fires = []
 for p in readPoly(fireFile):
     fire = Fire.Fire(p)
+    print("FIRE " + str(i))
+    i += 1
     fires.append(deepcopy(fire))
     #printpolygon(p)
 
 
-countyFile = 'C:\\Users\\AlexMussell\\Desktop\\counties.kml'
+countyFile = 'Counties.kml'
 i = 0
 counties = []
 for p in readPoly(countyFile):
+    print("COUNTY " + str(i))
+    i += 1
     county = County.County(p)
     counties.append(deepcopy(county))
     #printpolygon(p)
 
-landFile = ''
+landFile = 'landownership.kml'
 lands = []
+i = 0
 for p in readPoly(landFile):
+    print("LAND " + str(i))
+    i += 1
     land = Land.Land(p)
     lands.append(deepcopy(land))
 
+i = 0
 for county in counties:
+    print("County: " + str(i))
+    i += 1
     county.findFiresInCounty(fires)
 
+i = 0
 for fire in fires:
+    print("FIRE: " + str(i))
+    i += 1
     fire.findLandsInFire(lands)
 
 outputDataToCSV(counties, fires, lands)
