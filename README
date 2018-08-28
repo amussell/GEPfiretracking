@@ -1,0 +1,14 @@
+# Overview
+GEPfiretracking originated from a work being done in Idaho to track which fires had occured in
+which counties and what lands had been affected. This process was originally being done manually
+in google earth pro. In order to finish the process for all of Idaho manually it might have
+taken a year to complete. We were able to automate the process with this project and to
+run our script on the all the fire data and land data for the state it took us about a half
+hour.
+
+#Files
+TrackFires.py - This is the script file that performs the kml parsing, polygon data analysis, and outputs the data to a csv
+CountyFireLandHelpers.py - Functions for data analysis of County, Land, and Fire objects
+County.py - County object file
+Fire.py - Fire object file
+Land.py - Land object file
