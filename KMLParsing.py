@@ -1,29 +1,20 @@
 from shapely.geometry import Polygon
-from copy import deepcopy
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import csv
-import County
-import Fire
-import Land
-from CountyFireLandHelpers import outputDataToCSV
-from multiprocessing.dummy import Pool as ThreadPool
-
 from io import StringIO
 from xml.dom.minidom import parseString
 from zipfile import ZipFile
 import math
 
-'''
-This is a script to parse polygons contained in a kml or kmz file and print out statistics
-about each polygon found.  Currently only simple polygons without holes are supported.
-
-Dependencies:
-    Polygon: https://github.com/jraedler/Polygon2
-
-Just run `python polyStats.py <kml file>`.
-'''
+#
+# Author: jbeezley
+# Source: https://gist.github.com/jbeezley/3442777
+# Contributors: amussell, noahpoulin
+#
+# This code parses kml documents to read polygon GIS data into a python object
+# the readPoly(filename) function can be used to get a generator of polygon info from
+# a kml file.
+#
+# For GEP fire tracking this code was modified to use the shapely library for Polygons
+#
 
 kmlstr = \
     '''<?xml version="1.0" encoding="UTF-8"?>
@@ -69,7 +60,14 @@ def openKML(filename):
         fstring = open(filename, 'r').read()
     return parseString(fstring)
 
-
+#
+# Reads out placemark info from kml in the following format (polygonPoints, tags)
+# where polygonPoints is a list the points that define the landmark boundary. Tags
+# is a dictionary that maps the each subtags name to the string it surrounds. The sub
+# tags read are: <name>, <description>, <TimeSpan> (actually two subtags of TimeSpan: <begin> and <end>), and <TimeStamp>.
+#
+# For GEPFiretracking the only tags needed is <description> and <name>
+#
 def readPoly(filename):
     def parseData(d):
         dlines = d.split()
@@ -218,111 +216,3 @@ def poly2kmz(pp, fname):
     s = '\n'.join(strs)
     s = kmlstr % (fname, s)
     open(fname, 'w').write(s)
-
-def printpolygon(polygon):
-    polygon, desc = polygon
-    stats = polyStats(polygon)
-    desc.update(stats)
-    print('Polygon')
-    for d, v in desc.items():
-        print('%16s: %s' % (d, v))
-    print('')
-
-def getfirewithname(Fires,name):
-    for fire in Fires:
-        if fire[1]['name'] == name:
-            return fire
-
-def getcountywithname(counties,name):
-    for county in counties:
-        if county[1]['name'] == name:
-            return county
-
-def checkIfFireInCountyByName(fires,counties,firename,countyname):
-    fire = getfirewithname(fires,firename)
-    if fire == None:
-        print("ERROR: No such fire with name: " + firename)
-    county = getcountywithname(counties,countyname)
-    if county == None:
-        print("ERROR: No such county with name: " + countyname)
-    firePoints = np.array(fire[0])
-    countyPoints = np.array(county[0])
-    firePoly = Polygon(firePoints)
-    countyPoly = Polygon(countyPoints)
-    return countyPoly.overlaps(firePoly) or countyPoly.contains(firePoly) or firePoly.contains(countyPoly)
-
-def checkIfFireInCounty(fire,county):
-    firePoints = np.array(fire[0])
-    countyPoints = np.array(county[0])
-    firePoly = Polygon(firePoints)
-    countyPoly = Polygon(countyPoints)
-    return countyPoly.overlaps(firePoly) or countyPoly.contains(firePoly) or firePoly.contains(countyPoly)
-
-def getPolygon(list,name):
-    item = getfirewithname(list,name)
-    itemPoints = np.array(item[0])
-    return Polygon(itemPoints)
-
-def plotFire(fire):
-    firePoints = np.array(fire[0])
-    plt.plot(firePoints[:, 0],firePoints[:, 1])
-
-def getAttributeOfFire(fire,attributeString):
-    metadata = fire[1]['description']
-    tables = pd.read_html(metadata)  # use pandas library to read out tables from an html string to a pandas data frame
-    for i, row in enumerate(tables[0][0]):
-        if row == attributeString:
-            return tables[0][1][i]
-
-
-def getAcresOfFire(fire):
-    return getAttributeOfFire(fire,"GIS_ACRES")
-
-
-def getYearOfFire(fire):
-    return getAttributeOfFire(fire,"FIRE_YEAR")
-
-
-fireFile = 'FireHistory.kml'
-i = 0
-fires = []
-for p in readPoly(fireFile):
-    fire = Fire.Fire(p)
-    print("FIRE " + str(i))
-    i += 1
-    fires.append(deepcopy(fire))
-    #printpolygon(p)
-
-
-countyFile = 'Counties.kml'
-i = 0
-counties = []
-for p in readPoly(countyFile):
-    print("COUNTY " + str(i))
-    i += 1
-    county = County.County(p)
-    counties.append(deepcopy(county))
-    #printpolygon(p)
-
-landFile = 'landownership.kml'
-lands = []
-i = 0
-for p in readPoly(landFile):
-    print("LAND " + str(i))
-    i += 1
-    land = Land.Land(p)
-    lands.append(deepcopy(land))
-
-i = 0
-for county in counties:
-    print("County: " + str(i))
-    i += 1
-    county.findFiresInCounty(fires)
-
-i = 0
-for fire in fires:
-    print("FIRE: " + str(i))
-    i += 1
-    fire.findLandsInFire(lands)
-
-outputDataToCSV(counties, fires, lands)
